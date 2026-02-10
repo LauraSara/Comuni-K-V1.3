@@ -2,6 +2,9 @@
 
 package com.example.comunik.ui.screens
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -27,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.comunik.ui.theme.*
 
 @Composable
@@ -40,6 +44,7 @@ fun HomeScreen(
     onNotificationClick: () -> Unit = {}
 ) {
     var textToSpeak by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -188,13 +193,18 @@ fun HomeScreen(
                 QuickActionItem(Icons.Default.Settings, "Ajustes", onSettingsClick)
             )
 
+            // Función de orden superior q procesa acciones rápidas con una transformación
+            val processedActions = processQuickActions(quickActions) { action ->
+                action
+            }
+
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.height(220.dp)
             ) {
-                items(quickActions) { action ->
+                items(processedActions) { action ->
                     QuickActionCard(
                         icon = action.icon,
                         title = action.title,
@@ -261,7 +271,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = { },
+                    onClick = {
+                        // Uso de try/catch para manejar errores al copiar texto
+                        try {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText("Texto copiado", textToSpeak)
+                            clipboard.setPrimaryClip(clip)
+                        } catch (e: Exception) {
+                            Log.e("HomeScreen", "Error al copiar texto", e)
+                        }
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
@@ -317,6 +336,14 @@ data class QuickActionItem(
     val title: String,
     val onClick: () -> Unit
 )
+
+
+fun processQuickActions(
+    actions: List<QuickActionItem>,
+    transform: (QuickActionItem) -> QuickActionItem
+): List<QuickActionItem> {
+    return actions.map(transform)
+}
 
 @Composable
 fun QuickActionCard(

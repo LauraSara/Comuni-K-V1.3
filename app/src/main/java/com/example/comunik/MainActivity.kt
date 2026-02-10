@@ -20,6 +20,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.comunik.data.AuthRepository
+import com.example.comunik.data.exceptions.InvalidCredentialsException
 import com.example.comunik.ui.screens.ForgotPasswordScreen
 import com.example.comunik.ui.screens.HomeScreen
 import com.example.comunik.ui.screens.LoginScreen
@@ -97,14 +98,17 @@ fun NavigationGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginClick = { email, password ->
-                    val user = AuthRepository.login(email, password)
-                    if (user != null) {
+                    // try/catch para manejar excepciones
+                    try {
+                        val user = AuthRepository.loginWithExceptions(email, password)
                         currentUser = user
                         onLoginSuccess(user)
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
-                    } else {
+                    } catch (e: InvalidCredentialsException) {
+                        onLoginError()
+                    } catch (e: Exception) {
                         onLoginError()
                     }
                 },

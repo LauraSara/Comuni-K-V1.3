@@ -35,6 +35,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.comunik.ui.theme.*
+import com.example.comunik.util.isValidEmail
+import com.example.comunik.util.formatEmail
+import com.example.comunik.util.esVacio
 
 enum class DisabilityOption(val label: String) {
     NONE("Ninguna"),
@@ -655,20 +658,20 @@ fun RegisterScreen(
 
                     var hasError = false
                     
-                    if (name.isBlank()) {
+                    if (name.esVacio) {
                         nameError = "El nombre es requerido"
                         hasError = true
                     }
                     
-                    if (email.isBlank()) {
+                    if (email.esVacio) {
                         emailError = "El correo electrónico es requerido"
                         hasError = true
-                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    } else if (!email.isValidEmail()) {
                         emailError = "Correo electrónico inválido"
                         hasError = true
                     }
                     
-                    if (password.isBlank()) {
+                    if (password.esVacio) {
                         passwordError = "La contraseña es requerida"
                         hasError = true
                     } else if (password.length < 6) {
@@ -676,7 +679,7 @@ fun RegisterScreen(
                         hasError = true
                     }
                     
-                    if (confirmPassword.isBlank()) {
+                    if (confirmPassword.esVacio) {
                         confirmPasswordError = "Debes confirmar tu contraseña"
                         hasError = true
                     } else if (password != confirmPassword) {

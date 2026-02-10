@@ -28,6 +28,8 @@ import com.example.comunik.ui.theme.*
 fun UsersTableScreen(
     onBackClick: () -> Unit = {}
 ) {
+    // Uso función filter 
+    val filteredUsers = AuthRepository.filterUsers()
     val users = AuthRepository.getRegisteredUsersArray()
     val registeredCount = AuthRepository.getRegisteredCount()
 
