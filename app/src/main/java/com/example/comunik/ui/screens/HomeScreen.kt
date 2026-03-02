@@ -5,6 +5,7 @@ package com.example.comunik.ui.screens
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -41,7 +42,10 @@ fun HomeScreen(
     onContactsClick: () -> Unit = {},
     onTextToVoiceClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    onWriteClick: () -> Unit = {},
+    onSpeakClick: () -> Unit = {},
+    onFindDeviceClick: () -> Unit = {}
 ) {
     var textToSpeak by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -187,10 +191,10 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             val quickActions = listOf(
+                QuickActionItem(Icons.Default.Edit, "Escribir", onWriteClick),
+                QuickActionItem(Icons.Default.Mic, "Texto a voz", onSpeakClick),
+                QuickActionItem(Icons.Default.LocationOn, "Buscar Dispositivo", onFindDeviceClick),
                 QuickActionItem(Icons.Default.ChatBubble, "Frases", onPhrasesClick),
-                QuickActionItem(Icons.Default.Person, "Contactos", onContactsClick),
-                QuickActionItem(Icons.Default.VolumeUp, "Texto a Voz", onTextToVoiceClick),
-                QuickActionItem(Icons.Default.Settings, "Ajustes", onSettingsClick)
             )
 
             // Función de orden superior q procesa acciones rápidas con una transformación
@@ -202,7 +206,7 @@ fun HomeScreen(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.height(220.dp)
+                modifier = Modifier.height(300.dp)
             ) {
                 items(processedActions) { action ->
                     QuickActionCard(
@@ -218,116 +222,6 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-        ) {
-            Text(
-                text = "Escribir para hablar",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = TextPrimary
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            OutlinedTextField(
-                value = textToSpeak,
-                onValueChange = { textToSpeak = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                placeholder = {
-                    Text(
-                        text = "Escribe aquí lo que quieres decir...",
-                        color = TextSecondary
-                    )
-                },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = BorderGray,
-                    unfocusedBorderColor = BorderGray,
-                    focusedContainerColor = Color(0xFFF5F5F5),
-                    unfocusedContainerColor = Color(0xFFF5F5F5),
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
-                shape = RoundedCornerShape(8.dp),
-                maxLines = 3,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    color = TextPrimary
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        // Uso de try/catch para manejar errores al copiar texto
-                        try {
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("Texto copiado", textToSpeak)
-                            clipboard.setPrimaryClip(clip)
-                        } catch (e: Exception) {
-                            Log.e("HomeScreen", "Error al copiar texto", e)
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = TextPrimary
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, BorderGray)
-                ) {
-                    Text(
-                        text = "Copiar",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        )
-                    )
-                }
-
-                Button(
-                    onClick = {  },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Reproducir",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp
-                        )
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
     }
 }
 

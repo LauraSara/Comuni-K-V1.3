@@ -10,7 +10,7 @@ fun String.isValidEmail(): Boolean {
     return this.isNotBlank() && Patterns.EMAIL_ADDRESS.matcher(this).matches()
 }
 
-// Función de extensión para formatear un email
+// función de extensión para formatear un email
 fun String.formatEmail(): String {
     return this.trim().lowercase()
 }

@@ -1,6 +1,6 @@
 package com.example.comunik.util
 
-// Función inline para ejecutar bloques de código
+// funcion inline para ejcutar bloques de código
 
 inline fun <T> safeRun(block: () -> T): T? {
     return try {

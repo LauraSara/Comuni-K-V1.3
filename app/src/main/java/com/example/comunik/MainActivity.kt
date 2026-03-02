@@ -6,15 +6,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,6 +35,10 @@ import com.example.comunik.ui.screens.ForgotPasswordScreen
 import com.example.comunik.ui.screens.HomeScreen
 import com.example.comunik.ui.screens.LoginScreen
 import com.example.comunik.ui.screens.RegisterScreen
+import com.example.comunik.ui.screens.WriteScreen
+import com.example.comunik.ui.screens.SpeakScreen
+import com.example.comunik.ui.screens.FindDeviceScreen
+import com.example.comunik.ui.screens.PhrasesScreen
 import com.example.comunik.ui.theme.ComuniKTheme
 
 sealed class Screen(val route: String) {
@@ -32,6 +46,10 @@ sealed class Screen(val route: String) {
     object Register : Screen("register")
     object Home : Screen("home")
     object ForgotPassword : Screen("forgot_password")
+    object Write : Screen("write")
+    object Speak : Screen("speak")
+    object FindDevice : Screen("find_device")
+    object Phrases : Screen("phrases")
 }
 
 class MainActivity : ComponentActivity() {
@@ -96,20 +114,22 @@ fun NavigationGraph(
         startDestination = Screen.Login.route
     ) {
         composable(Screen.Login.route) {
+            val loginScope = rememberCoroutineScope()
             LoginScreen(
                 onLoginClick = { email, password ->
-                    // try/catch para manejar excepciones
-                    try {
-                        val user = AuthRepository.loginWithExceptions(email, password)
-                        currentUser = user
-                        onLoginSuccess(user)
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                    loginScope.launch {
+                        try {
+                            val user = AuthRepository.loginWithExceptions(email, password)
+                            currentUser = user
+                            onLoginSuccess(user)
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        } catch (e: InvalidCredentialsException) {
+                            onLoginError()
+                        } catch (e: Exception) {
+                            onLoginError()
                         }
-                    } catch (e: InvalidCredentialsException) {
-                        onLoginError()
-                    } catch (e: Exception) {
-                        onLoginError()
                     }
                 },
                 onRegisterClick = {
@@ -122,17 +142,41 @@ fun NavigationGraph(
         }
         
         composable(Screen.Register.route) {
+            val coroutineScope = rememberCoroutineScope()
+            var showFirebaseErrorDialog by remember { mutableStateOf(false) }
+            var firebaseErrorMessage by remember { mutableStateOf<String?>(null) }
+            
             RegisterScreen(
                 onRegisterClick = { name, email, password, disability ->
-                    val success = AuthRepository.register(email, password, name)
-                    if (success) {
-                        onRegisterSuccess()
-                        navController.popBackStack()
-                    } else {
-                        if (AuthRepository.userExists(email)) {
-                            onRegisterError("El correo electrónico ya está registrado")
-                        } else {
-                            onRegisterError("No se pudo registrar. Se alcanzó el límite de usuarios (5 máximo)")
+                    coroutineScope.launch {
+                        val result = AuthRepository.register(email, password, name)
+                        if (result.success) {
+                            if (result.errorMessage != null && result.errorMessage.contains("localmente")) {
+                                Toast.makeText(
+                                    context,
+                                    "Usuario registrado localmente. Los datos se perderán al reiniciar la app.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                onRegisterSuccess()
+                            }
+                            navController.popBackStack()
+                            } else {
+                                if (result.errorType == AuthRepository.RegisterErrorType.FIREBASE_NOT_CONFIGURED ||
+                                result.errorType == AuthRepository.RegisterErrorType.FIREBASE_AUTH_DISABLED) {
+                                firebaseErrorMessage = result.errorMessage
+                                showFirebaseErrorDialog = true
+                            } else {
+                                val errorMsg = result.errorMessage ?: when (result.errorType) {
+                                    AuthRepository.RegisterErrorType.USER_ALREADY_EXISTS -> "El correo electrónico ya está registrado"
+                                    AuthRepository.RegisterErrorType.USER_LIMIT_REACHED -> "Se alcanzó el límite de usuarios (5 máximo)"
+                                    AuthRepository.RegisterErrorType.FIREBASE_TIMEOUT -> "Timeout al conectar con Firebase. Verifica tu conexión a internet."
+                                    AuthRepository.RegisterErrorType.FIREBASE_ERROR -> "Error de Firebase. Verifica la configuración."
+                                    AuthRepository.RegisterErrorType.INVALID_DATA -> "Los datos ingresados no son válidos"
+                                    else -> "Error desconocido al registrar usuario"
+                                }
+                                onRegisterError(errorMsg)
+                            }
                         }
                     }
                 },
@@ -154,6 +198,29 @@ fun NavigationGraph(
                     ).show()
                 }
             )
+            
+            if (showFirebaseErrorDialog) {
+                AlertDialog(
+                    onDismissRequest = { showFirebaseErrorDialog = false },
+                    title = {
+                        Text(
+                            text = "Error al registrar en Firebase.",
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = firebaseErrorMessage ?: "Error desconocido de Firebase",
+                            modifier = Modifier.verticalScroll(rememberScrollState())
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showFirebaseErrorDialog = false }) {
+                            Text("Entendido")
+                        }
+                    }
+                )
+            }
         }
         
         composable(Screen.ForgotPassword.route) {
@@ -193,11 +260,7 @@ fun NavigationGraph(
                     ).show()
                 },
                 onPhrasesClick = {
-                    Toast.makeText(
-                        context,
-                        "Próximamente",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    navController.navigate(Screen.Phrases.route)
                 },
                 onContactsClick = {
                     Toast.makeText(
@@ -207,11 +270,7 @@ fun NavigationGraph(
                     ).show()
                 },
                 onTextToVoiceClick = {
-                    Toast.makeText(
-                        context,
-                        "Funcionalidad pendiente",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    navController.navigate(Screen.Write.route)
                 },
                 onSettingsClick = {
                     Toast.makeText(
@@ -226,6 +285,47 @@ fun NavigationGraph(
                         "En desarrollo",
                         Toast.LENGTH_SHORT
                     ).show()
+                },
+                onWriteClick = {
+                    navController.navigate(Screen.Write.route)
+                },
+                onSpeakClick = {
+                    navController.navigate(Screen.Speak.route)
+                },
+                onFindDeviceClick = {
+                    navController.navigate(Screen.FindDevice.route)
+                }
+            )
+        }
+        
+        composable(Screen.Write.route) {
+            WriteScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.Speak.route) {
+            SpeakScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.FindDevice.route) {
+            FindDeviceScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(Screen.Phrases.route) {
+            PhrasesScreen(
+                onBackClick = {
+                    navController.popBackStack()
                 }
             )
         }

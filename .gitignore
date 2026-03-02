@@ -58,6 +58,7 @@ captures/
 # Keystore files
 *.jks
 *.keystore
+keystore.properties
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
@@ -99,4 +100,26 @@ lint/tmp/
 # Android Profiling
 *.hprof
 
+# IntelliJ IDEA - Additional files
+.idea/appInsightsSettings.xml
+.idea/studiobot.xml
+.idea/AndroidProjectSystem.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/markdown.xml
+.idea/material_theme_project_new.xml
+.idea/migrations.xml
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
 
